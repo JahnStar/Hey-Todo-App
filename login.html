@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Todos</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="bg-blue-100">
+    <div class="w-full h-full flex content-center justify-center mt-8">
+      <div class="bg-white shadow-md rounded px-8 pt-6 py-8 mb-4">
+        <h1 class="block text-grey-800 text-md font-bold mb-1">Login</h1>
+        <br>
+        <div class="flex">
+          <input
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
+            type="text"
+            name="username"
+            placeholder="username"
+          />
+        </div>
+        <br>
+        <div class="flex">
+          <input
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
+            type="password"
+            name="password"
+            placeholder="password"
+          />
+        </div>
+        <br>
+        <div class="flex">
+          <button
+            class="bg-blue-500 hover:bg-blue-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            id="signup"
+            type="submit"
+            style="width: 50%; margin-left: 0;"
+            >
+            Sign Up
+          </button>
+          <button
+            class="bg-blue-500 hover:bg-blue-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            id="login"
+            type="submit"
+            style="width: 50%;"
+            >
+            Login
+          </button>
+        </div> 
+      </div>
+    </div>
+  </body>
+
+  <script>
+    var signup = function () {
+      var username = document.querySelector('input[name=username]');
+      var password = document.querySelector('input[name=password]');
+      if (!username?.value.trim() || !password?.value.trim()) {
+        alert('Please enter both username and password.');
+        return;
+      }
+      
+      fetch('/', {
+        method: 'POST',
+        body: JSON.stringify({ process : "signup", username: username.value, password: password.value })
+      }).then(async function(response) {
+        const server_data = await response.json();
+        alert(server_data.message);
+      });
+    };
+
+    var login = function () {
+      var username = document.querySelector('input[name=username]');
+      var password = document.querySelector('input[name=password]');
+      if (!username?.value.trim() || !password?.value.trim()) {
+        alert('Please enter both username and password.');
+        return;
+      }
+      
+      fetch('/', {
+        method: 'POST',
+        body: JSON.stringify({ process : "login", username: username.value, password: password.value })
+      }).then(async function(response) {
+        const server_data = await response.json();
+        if (response.ok) window.location.href = `/?username=${username.value}&token=${server_data.token}`;
+        else alert(server_data.message);
+      });
+    };
+
+    document.querySelector('#signup').addEventListener('click', signup);
+    document.querySelector('#login').addEventListener('click', login);
+  </script>
+</html>
