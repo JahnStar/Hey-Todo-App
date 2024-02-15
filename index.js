@@ -89,7 +89,7 @@ class TodoApp {
   static async loadPage(html, cache_data = null) {
     if (!cache_data) return new Response(html, { headers: { 'Content-Type': 'text/html' } });
 
-    const body = html.replace(
+    let body = html.replace(
       '$TODOS',
       JSON.stringify(
         cache_data.data.todos?.map(todo => ({
@@ -98,7 +98,8 @@ class TodoApp {
           completed: !!todo.completed
         })) ?? []
       )
-    ).replace('$TITLE_USER', Security.escapeHtml(cache_data.account.username)).replace('$TITLE_USER', Security.escapeHtml(cache_data.account.username));
+    );
+    body = body.replace(/\$TITLE_USER/g, Security.escapeHtml(cache_data.account.username));
 
     return new Response(body, {
       headers: { 'Content-Type': 'text/html' }
