@@ -97,7 +97,7 @@ class SessionManager {
     let new_cookies = 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     // Auth & Sync
     if (access && !logout) new_cookies = `session=${new_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
-    else auth_response.body = Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
+    else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
     auth_response.headers.append('Set-Cookie', new_cookies);
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
