@@ -65,8 +65,8 @@
         body: formData
       }).then(async function(response) {
         const response_data = await response.json();
+        if (response_data.message) alert(response_data.message);
         if (response.status === 200) window.location.reload();
-        else if (response_data.message) alert(response_data.message);
       });
     }
   </script>

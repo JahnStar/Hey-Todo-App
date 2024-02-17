@@ -9,8 +9,7 @@ export default {
     //
     if (request.method === 'POST') {
       const contentType = request.headers.get('Content-Type');
-      //
-      let form_status = 502;
+      //  
       if (contentType && (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')))
       {
         const formData = await request.formData();
@@ -19,23 +18,27 @@ export default {
         const email = Security.escapeHtml(formData.get('email'));
         const password = Security.escapeHtml(formData.get('password'));
         //
-        form_status = await SessionManager.FormValidity(env, email, password);
+        let form_status = await SessionManager.FormValidity(env, email, password);
         //
         if (process === 'login') {
-          if (form_status != 200) return Response.json({message:"Form validation failed: " + form_status});
-          const bearer = await SessionManager.GetBearer(env, email, password); 
-          if (bearer) return await SessionManager.BearerAuth(env, Response.json({message:"Successfully."}), bearer, true);
-          else form_status = 401;
+          if (form_status == 200) {
+            const bearer = await SessionManager.GetBearer(env, email, password); 
+            if (bearer) return await SessionManager.BearerAuth(env, Response.json({login:"Successfully."}), bearer, true);
+            else form_status = 401;
+          }
+          else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${form_status})`}), {status:404});
         }
         else if (process === 'signup') return await SessionManager.Register(env, username, email, password, form_status);
         else form_status = 400;
+        return Response.json({message:`Form Error: Access denied. (code:${form_status})`}); 
       }
-      return Response.json({message:"Access denied: " + form_status}); 
-    }    
+    }
     if (cookies)
     {
+      const logout = (new URL(request.url)).pathname == '/logout'; 
       const bearer = await SessionManager.CookiesBearer(cookies);
-      return await SessionManager.BearerAuth(env, Response.json({message:"Successfully Generated Token."}), bearer); 
+      const response = await TodoApp.loadPage(app_page);
+      return await SessionManager.BearerAuth(env, SessionManager.AuthResponse(await response.text(),response.headers), bearer, false, logout); 
     }
     return TodoApp.loadPage(login_page);
   }
@@ -52,8 +55,17 @@ class SessionManager {
     return await Security.hashPassword(email);
   }
 
+  static AuthResponse(body, headers, status = 200){
+    return { 
+      body: body,
+      status: status,
+      headers: headers ? headers : new Headers()
+    };
+  }
+
   static CookiesBearer = (cookies) => {    
-    try { return cookies.split("session_token=")[1].split('.')[0]; }
+    try { 
+      return cookies.split("session_token=")[1].split('.')[0]; }
     catch { return null; }
   }
 
@@ -75,7 +87,7 @@ class SessionManager {
     return this.ToBearer(auth.user_id, auth.session_token);
   }
   
-  static async BearerAuth(env, response, cookies_bearer, login=false){ 
+  static async BearerAuth(env, auth_response, cookies_bearer, login=false, logout=false){ 
     if (!cookies_bearer) return Examples.page404();
     const cookies_auth = {
       user_id: cookies_bearer.substring(7).split(':')[0],
@@ -85,28 +97,25 @@ class SessionManager {
     const cache = JSON.parse(await this.getCache(env, cookies_auth.user_id));
     if (!cache) return Examples.page404();
     // Compare token 
-    const cachedToken = cache.session.token;
-    const access = Security.compareToken(cache.session.token, cookies_auth.session_token); 
+    const access = Security.compareToken(cache.session.token, cookies_auth.session_token);
     // Reset token 
-    if (login || access) {
-      const session_token = await this.ResetToken(env, cookies_auth.user_id);
+    if ((login || access) && !logout) {
+      const session_token = await this.ResetToken(env, cache, cookies_auth.user_id);
       cookies_bearer = this.ToBearer(cookies_auth.user_id, session_token);
+      // Set Cookies
+      auth_response.headers.append('Set-Cookie', `session_token=${cookies_bearer}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
     }
-    else await this.ResetToken(env, cookies_auth.user_id); 
-    // Set Cookies
-    let new_cookies = `session_token=${cookies_bearer}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
-    // if (!access) {
-    //   response = Examples.page401(); 
-    //   new_cookies = 'Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600';
-    // }
-    response = Response.json({ server: cachedToken, client: cookies_auth.session_token, access: (access ? "true" : "false")});
-    response.headers.append('Set-Cookie', new_cookies);
-    return response; 
+    else {
+      await this.ResetToken(env, cache, cookies_auth.user_id);
+      auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 1500).text();
+      // Set Cookies
+      auth_response.headers.append('Set-Cookie', 'session_token=delete; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly');
+    }
+    return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static async ResetToken(env, user_id){
+  static async ResetToken(env, cache, user_id){
     if (!user_id) return null;
-    const cache = JSON.parse(await this.getCache(env, user_id));
     const new_session_token = await Security.generateJWT();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
@@ -130,22 +139,31 @@ class SessionManager {
   }
 
   static async Register(env, username, email, password, form_status){
-    let message = "Signing up error: Something went wrong.";
+    let message = "Register error: Something went wrong.";
     let status = 403;
     try{
       if (form_status === 404) {
         if (!username) username = Security.uuid().substring(4, 16);
         const user_id = await this.getUserID(email);
         const hashedPassword = await Security.hashPassword(password);
-        const new_user_data = { session: { token: "true" }, account: { username: username, email: email, password: hashedPassword }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };
-        await this.setCache(env, user_id, JSON.stringify(new_user_data));
-        message = "Account created!"
-        status = 200;
+        const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { token: "+" }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };
+        try{
+          await this.setCache(env, user_id, JSON.stringify(new_user_data));
+          message = "Account created!"
+          status = 200;
+        }
+        catch {
+          message = "Register error: Service is unavailable.";
+          status = 503;
+        }
       }
-      else status = 409;
+      else {
+        message = "Account is already registered."
+        status = 409;
+      }
     }
     catch { status = 500; }
-    return new Response(JSON.stringify({message:message}), { status: status, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({message:message + ` (code:${status})`}), { status: status, headers: { 'Content-Type': 'application/json' } });
   }
 }
 
