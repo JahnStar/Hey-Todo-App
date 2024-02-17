@@ -78,6 +78,8 @@ export class Examples {
   }
   // HTML
   static htmlGenerateCard(img, header, text, footer) {
+    const blankImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTJweCIgaGVpZ2h0PSIxOTJweCIgdmlld0JveD0iMCAwIDE5MiAxOTIiPgogICAgPGcgZmlsbD0ibm9uZSI+CiAgICAgICAgPGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiNmZmYiPgogICAgICAgICAgICA8cGF0aCBkPSJNMCAwaDE5MnB4MTkySDB6Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgogIDwvc3ZnPg==';
+
     return `
         <link href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css" rel="stylesheet"/>
         <div class="flex items-center justify-center min-h-screen bg-gray-100">
@@ -85,8 +87,9 @@ export class Examples {
                 <div class="-mt-28 md:-my-16 md:-ml-32" style="clip-path: url(#roundedPolygon)">
                     <img
                         class="w-auto h-48"
-                        src="${img}"
+                        src="${blankImage}"
                         alt="${header}"
+                        onload="this.src='${img}';"
                     />
                 </div>
                 <div class="flex flex-col space-y-4">
@@ -99,7 +102,7 @@ export class Examples {
                     </div>
                 </div>
             </div>
-            <svg width="0" height="0" xmlns="http://www.w3.org/2000/svg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" >
                 <defs>
                     <clipPath id="roundedPolygon">
                         <path d="M79 6.237604307034a32 32 0 0 1 32 0l52.870489570875 30.524791385932a32 32 0 0 1 16 27.712812921102l0 61.049582771864a32 32 0 0 1 -16 27.712812921102l-52.870489570875 30.524791385932a32 32 0 0 1 -32 0l-52.870489570875 -30.524791385932a32 32 0 0 1 -16 -27.712812921102l0 -61.049582771864a32 32 0 0 1 16 -27.712812921102"/>
@@ -108,5 +111,5 @@ export class Examples {
             </svg>
         </div>
     `;
-}
+  }  
 }

@@ -99,29 +99,27 @@ class SessionManager {
     // Compare token 
     const access = Security.compareToken(cache.session.token, cookies_auth.session_token);
     // Reset token 
+    const session_token = await this.ResetSessionToken(env, cache, cookies_auth.user_id);
+    // Set Cookies
+    let new_cookies = 'session_token=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     if ((login || access) && !logout) {
-      const session_token = await this.ResetToken(env, cache, cookies_auth.user_id);
+      // Auth & Sync
       cookies_session = this.ToSession(cookies_auth.user_id, session_token);
-      // Set Cookies
-      auth_response.headers.append('Set-Cookie', `session_token=${cookies_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
+      new_cookies = `session_token=${cookies_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
     }
-    else {
-      await this.ResetToken(env, cache, cookies_auth.user_id);
-      auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 1500).text();
-      // Set Cookies
-      auth_response.headers.append('Set-Cookie', 'session_token=delete; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly');
-    }
+    else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 1500).text();
+    auth_response.headers.append('Set-Cookie', new_cookies);
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static async ResetToken(env, cache, user_id){
+  static async ResetSessionToken(env, cache, user_id){
     if (!user_id) return null;
     const new_session_token = await Security.generateJWT();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
     return new_session_token;
   }
-
+ 
   static async FormValidity(env, email, password, if_its_new_session=false) {
     try{
       if (email && email.trim() && password && password.trim()){
