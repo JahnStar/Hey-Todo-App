@@ -70,7 +70,7 @@ class SessionManager {
   }
 
   static ToSession(user_id, session_token){
-    return `Session ${user_id}:${session_token}.`;
+    return `${user_id}:${session_token}.`;
   }
 
   static async GetSession(env, email, password){
@@ -90,7 +90,7 @@ class SessionManager {
   static async SessionAuth(env, auth_response, cookies_session, login=false, logout=false){ 
     if (!cookies_session) return Examples.page404();
     const cookies_auth = {
-      user_id: cookies_session.substring(8).split(':')[0],
+      user_id: cookies_session.split(':')[0],
       session_token: cookies_session.split(':')[1].split('.')[0]
     }
     // Get user
@@ -113,7 +113,6 @@ class SessionManager {
   }
 
   static async ResetSessionToken(env, cache, user_id){
-    if (!user_id) return null;
     const new_session_token = await Security.generateJWT();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
