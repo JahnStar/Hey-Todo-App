@@ -23,7 +23,7 @@ export default {
         if (process === 'login') {
           if (form_status == 200) {
             const session = await SessionManager.GetSession(env, email, password); 
-            if (session) return await SessionManager.SessionAuth(env, Response.json({login:"Successfully."}), session, true);
+            if (session) return await SessionManager.Auth(env, Response.json({login:"Successfully."}), session, request.headers.get('CF-Connecting-IP'), true);
             else form_status = 401;
           }
           else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${form_status})`}), {status:404});
@@ -38,7 +38,7 @@ export default {
       const logout = (new URL(request.url)).pathname == '/logout'; 
       const session = await SessionManager.CookiesSession(cookies);
       const response = await TodoApp.loadPage(app_page);
-      return await SessionManager.SessionAuth(env, SessionManager.AuthResponse(await response.text(),response.headers), session, false, logout); 
+      return await SessionManager.Auth(env, SessionManager.AuthResponse(await response.text(),response.headers), session, request.headers.get('CF-Connecting-IP'), false, logout); 
     }
     return TodoApp.loadPage(login_page);
   }
@@ -87,7 +87,7 @@ class SessionManager {
     return this.ToSession(auth.user_id, auth.session_token);
   }
   
-  static async SessionAuth(env, auth_response, cookies_session, login=false, logout=false){ 
+  static async Auth(env, auth_response, cookies_session, ip_address, login=false, logout=false){ 
     if (!cookies_session) return Examples.page404();
     const cookies_auth = {
       user_id: cookies_session.split(':')[0],
@@ -99,7 +99,7 @@ class SessionManager {
     // Compare token 
     const access = Security.compareToken(cache.session.token, cookies_auth.session_token);
     // Reset token 
-    const session_token = await this.ResetSessionToken(env, cache, cookies_auth.user_id);
+    const session_token = await this.ResetSessionToken(env, cache, cookies_auth.user_id, ip_address, login);
     // Set Cookies
     let new_cookies = 'session_token=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     if ((login || access) && !logout) {
@@ -112,7 +112,12 @@ class SessionManager {
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static async ResetSessionToken(env, cache, user_id){
+  static async ResetSessionToken(env, cache, user_id, ip_address, logged_in = null){
+    // Log
+    cache.session.ip_address = ip_address;
+    cache.session.last_tried = new Date().toISOString();
+    if (logged_in) cache.session.last_login = new Date().toISOString();
+    //
     const new_session_token = await Security.generateJWT();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
@@ -143,7 +148,7 @@ class SessionManager {
         if (!username) username = Security.uuid().substring(4, 16);
         const user_id = await this.getUserID(email);
         const hashedPassword = await Security.hashPassword(password);
-        const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { token: "+" }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };
+        const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login",  last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };
         try{
           await this.setCache(env, user_id, JSON.stringify(new_user_data));
           message = "Account created!"
