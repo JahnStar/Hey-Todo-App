@@ -12,86 +12,62 @@
 
   <body class="bg-white">
     <div class="h-screen flex flex-col items-center justify-center mt-8">
-      <div class="bg-blue-50 shadow-md rounded px-8 pt-6 py-8 mb-4">
-        <h1 class="block text-grey-800 text-md font-bold mb-1">Login</h1>
-        <br>
-        <div class="flex">
-          <input
-            class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
-            type="text"
-            name="username"
-            placeholder="username"
-          />
-        </div>
-        <br>
-        <div class="flex">
-          <input
-            class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
-            type="password"
-            name="password"
-            placeholder="password"
-          />
-        </div>
-        <br>
-        <div class="flex">
-          <button
-            class="bg-green-500 hover:bg-green-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            id="signup"
-            type="submit"
-            style="width: 50%; margin-left: 0;"
-            >
-            Sign Up
-          </button>
-          <button
-            class="bg-blue-500 hover:bg-blue-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            id="login"
-            type="submit"
-            style="width: 50%;"
-            >
-            Login
-          </button>
-        </div> 
+      <div class="bg-blue-50 shadow-md rounded px-8 pt-6 py-8 mb-4 w-80">
+        <h1 class="block text-grey-800 text-md font-bold mb-3">Login</h1>
+        <form id="loginForm" action="/" method="POST"> 
+          <div class="mb-2">
+            <input
+              class="mb-2 shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
+              type="text" name="username" placeholder="username"  required title="enter an username"
+            />
+            <input
+              class="mb-2 shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
+              type="email" name="email" placeholder="email"
+              required title="enter an email"
+            />
+            <input
+              class="mb-2 shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
+              type="password" name="password" placeholder="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" 
+              required title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters"
+            />
+          </div>
+          <div class="flex">
+            <button
+              id="signup" class="bg-green-500 hover:bg-green-800 text-white font-bold mr-1 py-2 px-4 rounded focus:outline-none focus:shadow-outline w-2/4"
+              type="submit"
+              >
+              Sign Up
+            </button>
+            <button
+              id="login" class="bg-blue-500 hover:bg-blue-800 text-white font-bold ml-1 py-2 px-4 rounded focus:outline-none focus:shadow-outline w-2/4"
+              type="submit"
+              >
+              Login
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </body>
 
   <script>
-    var signup = function () {
-      var username = document.querySelector('input[name=username]');
-      var password = document.querySelector('input[name=password]');
-      if (!username?.value.trim() || !password?.value.trim()) {
-        alert('Please enter both username and password.');
-        return;
-      }
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', submitForm);
+
+    function submitForm(event) {
+      event.preventDefault();
+      
+      const formData = new FormData(form);  
+      formData.append('process', event.submitter.id);
       
       fetch('/', {
         method: 'POST',
-        body: JSON.stringify({ process : "signup", username: username.value, password: password.value })
+        body: formData
       }).then(async function(response) {
-        const server_data = await response.json();
-        alert(server_data.message);
+        const response_data = await response.json();
+        if (response.status === 200) window.location.reload();
+        else if (response_data.message) alert(response_data.message);
       });
-    };
-
-    var login = function () {
-      var username = document.querySelector('input[name=username]');
-      var password = document.querySelector('input[name=password]');
-      if (!username?.value.trim() || !password?.value.trim()) {
-        alert('Please enter both username and password.');
-        return;
-      }
-      
-      fetch('/', {
-        method: 'POST',
-        body: JSON.stringify({ process : "login", username: username.value, password: password.value })
-      }).then(async function(response) {
-        const server_data = await response.json();
-        if (response.ok) window.location.href = `/?username=${username.value}&token=${server_data.token}`;
-        else alert(server_data.message);
-      });
-    };
-
-    document.querySelector('#signup').addEventListener('click', signup);
-    document.querySelector('#login').addEventListener('click', login);
+    }
   </script>
 </html>

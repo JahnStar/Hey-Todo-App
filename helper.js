@@ -1,4 +1,3 @@
-
 export class Security{
   static escaped = {
     '"': '&quot;',
@@ -16,6 +15,7 @@ export class Security{
       match => this.escaped[match]
     );
   }
+
   // Account process
   static async hashPassword(password) {
     // Placeholder for hash function (you can implement your own hash function here)
@@ -29,22 +29,47 @@ export class Security{
     return hashedPassword;
   }
   
-  static async comparePasswords(plaintextPassword, hashedPassword) {
-    const hashedPlaintext = await this.hashPassword(plaintextPassword);
-    return hashedPlaintext === hashedPassword;
+  static async comparePasswords(plaintext_psw, hashed_psw) {
+    const hashedPlaintext = await this.hashPassword(plaintext_psw);
+    return hashedPlaintext === hashed_psw;
   }
 
-  // ID generator
+  static compareToken(current, compared) {
+    return current === compared ? true : false;
+  }
+
+  // Random ID generator
   static uuid(){
     let uuid = '';
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     for (let i = 0; i < 32; i++) {
     const charIndex = Math.floor(Math.random() * chars.length);
     uuid += chars[charIndex];
-    if (i === 7 || i === 11 || i === 15 || i === 19) {
-        uuid += '-';
-    }
+    if (i === 7 || i === 11 || i === 15 || i === 19) uuid += '-';
     }
     return uuid;
+  }
+
+  // JSON Web Token generator
+  static async generateJWT() {
+    let uuid = '';
+    const chars = '_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+    const charIndex = Math.floor(Math.random() * chars.length);
+    uuid += chars[charIndex];
+    if (i === 7 || i === 11 || i === 15 || i === 19) uuid += '-';
+    }
+    return uuid;
+  }
 }
+
+export class Examples {
+  static page404(){
+    const html = `<!DOCTYPE html><title>404 Not Found</title><h1>404 Not Found</h1><script>setTimeout(() => { window.location.href = '/home'; }, 3000);</script>`;
+    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+  }
+  static page401(){
+    const html = `<!DOCTYPE html><title>Unauthorized Access</title><h1>Unauthorized Access</h1><p>You are not authorized to access this resource.</p><script>setTimeout(() => { window.location.href = '/home'; }, 3000);</script>`;
+    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+  }
 }
