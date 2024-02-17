@@ -4,7 +4,7 @@ import app_page from './app.html';
 
 export default {
   async fetch(request, env) {
-    if ((new URL(request.url)).searchParams.get('developermode')) return new Response(`<!DOCTYPE html><h1>${await SessionManager.GetBearer(env, 'johndoe@mail.comA1', 'johndoe@mail.comA1')}</h1><button style="width: 25%; padding-top: 25%" onclick="window.location.href = '/?developermode=on';"></button>`, { status: 200, headers: { 'Content-Type': 'text/html'} })
+    if ((new URL(request.url)).searchParams.get('developermode')) return new Response(`<!DOCTYPE html><h1>${await SessionManager.GetSession(env, 'johndoe@mail.comA1', 'johndoe@mail.comA1')}</h1><button style="width: 25%; padding-top: 25%" onclick="window.location.href = '/?developermode=on';"></button>`, { status: 200, headers: { 'Content-Type': 'text/html'} })
     const cookies = request.headers.get('Cookie');
     //
     if (request.method === 'POST') {
@@ -22,8 +22,8 @@ export default {
         //
         if (process === 'login') {
           if (form_status == 200) {
-            const bearer = await SessionManager.GetBearer(env, email, password); 
-            if (bearer) return await SessionManager.BearerAuth(env, Response.json({login:"Successfully."}), bearer, true);
+            const session = await SessionManager.GetSession(env, email, password); 
+            if (session) return await SessionManager.SessionAuth(env, Response.json({login:"Successfully."}), session, true);
             else form_status = 401;
           }
           else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${form_status})`}), {status:404});
@@ -36,9 +36,9 @@ export default {
     if (cookies)
     {
       const logout = (new URL(request.url)).pathname == '/logout'; 
-      const bearer = await SessionManager.CookiesBearer(cookies);
+      const session = await SessionManager.CookiesSession(cookies);
       const response = await TodoApp.loadPage(app_page);
-      return await SessionManager.BearerAuth(env, SessionManager.AuthResponse(await response.text(),response.headers), bearer, false, logout); 
+      return await SessionManager.SessionAuth(env, SessionManager.AuthResponse(await response.text(),response.headers), session, false, logout); 
     }
     return TodoApp.loadPage(login_page);
   }
@@ -63,17 +63,17 @@ class SessionManager {
     };
   }
 
-  static CookiesBearer = (cookies) => {    
+  static CookiesSession = (cookies) => {    
     try { 
       return cookies.split("session_token=")[1].split('.')[0]; }
     catch { return null; }
   }
 
-  static ToBearer(user_id, session_token){
-    return `Bearer ${user_id}:${session_token}.`;
+  static ToSession(user_id, session_token){
+    return `Session ${user_id}:${session_token}.`;
   }
 
-  static async GetBearer(env, email, password){
+  static async GetSession(env, email, password){
     if (!email || !email.trim() || !password || !password.trim()) return null;
     const auth = { user_id: await this.getUserID(email) }
     // Get user
@@ -84,14 +84,14 @@ class SessionManager {
     //
     auth.session_token = cache.session.token;
     if (!auth.session_token) return false;
-    return this.ToBearer(auth.user_id, auth.session_token);
+    return this.ToSession(auth.user_id, auth.session_token);
   }
   
-  static async BearerAuth(env, auth_response, cookies_bearer, login=false, logout=false){ 
-    if (!cookies_bearer) return Examples.page404();
+  static async SessionAuth(env, auth_response, cookies_session, login=false, logout=false){ 
+    if (!cookies_session) return Examples.page404();
     const cookies_auth = {
-      user_id: cookies_bearer.substring(7).split(':')[0],
-      session_token: cookies_bearer.split(':')[1].split('.')[0]
+      user_id: cookies_session.substring(8).split(':')[0],
+      session_token: cookies_session.split(':')[1].split('.')[0]
     }
     // Get user
     const cache = JSON.parse(await this.getCache(env, cookies_auth.user_id));
@@ -101,9 +101,9 @@ class SessionManager {
     // Reset token 
     if ((login || access) && !logout) {
       const session_token = await this.ResetToken(env, cache, cookies_auth.user_id);
-      cookies_bearer = this.ToBearer(cookies_auth.user_id, session_token);
+      cookies_session = this.ToSession(cookies_auth.user_id, session_token);
       // Set Cookies
-      auth_response.headers.append('Set-Cookie', `session_token=${cookies_bearer}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
+      auth_response.headers.append('Set-Cookie', `session_token=${cookies_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
     }
     else {
       await this.ResetToken(env, cache, cookies_auth.user_id);
