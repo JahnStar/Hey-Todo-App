@@ -4,10 +4,6 @@ import app_page from './app.html';
 
 export default {
   async fetch(request, env) {
-    if ((new URL(request.url)).searchParams.get('developermode')) {
-      const text = "";
-      return new Response(`<!DOCTYPE html><h1>${text + "<br>" + (await SessionManager.AuthValidity(env, 'johndoe@mail.comA1', 'johndoe@mail.comA1')).session_token}</h1><button style="width: 25%; padding-top: 25%" onclick="window.location.href = '/?developermode=on';"></button>`, { status: 200, headers: { 'Content-Type': 'text/html'} })
-    }
     const cookies = request.headers.get('Cookie');
     //
     if (request.method === 'POST') {
