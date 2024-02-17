@@ -4,7 +4,10 @@ import app_page from './app.html';
 
 export default {
   async fetch(request, env) {
-    if ((new URL(request.url)).searchParams.get('developermode')) return new Response(`<!DOCTYPE html><h1>${(await SessionManager.AuthValidity(env, 'johndoe@mail.comA1', 'johndoe@mail.comA1')).session}</h1><button style="width: 25%; padding-top: 25%" onclick="window.location.href = '/?developermode=on';"></button>`, { status: 200, headers: { 'Content-Type': 'text/html'} })
+    if ((new URL(request.url)).searchParams.get('developermode')) {
+      const text = "";
+      return new Response(`<!DOCTYPE html><h1>${text + "<br>" + (await SessionManager.AuthValidity(env, 'johndoe@mail.comA1', 'johndoe@mail.comA1')).session_token}</h1><button style="width: 25%; padding-top: 25%" onclick="window.location.href = '/?developermode=on';"></button>`, { status: 200, headers: { 'Content-Type': 'text/html'} })
+    }
     const cookies = request.headers.get('Cookie');
     //
     if (request.method === 'POST') {
@@ -19,24 +22,23 @@ export default {
         const password = Security.escapeHtml(formData.get('password'));
         //
         const auth_validity = await SessionManager.AuthValidity(env, email, password);
-        const auth_status = auth_validity.status;
         //
         if (process === 'login') {
-          if (auth_status == 200 && auth_validity.session) return await SessionManager.Auth(env, Response.json({login:"Successfully." }), auth_validity.session, request.headers.get('CF-Connecting-IP'), true);
-          else if (auth_status == 401) return new Response(JSON.stringify({message:`Login error: Incorrect email or password. (code:${auth_status})`}), {status:401});
-          else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${auth_status})`}), {status:auth_status});
+          if (auth_validity.status == 200) return await SessionManager.Auth(env, Response.json({login:"Successfully." }), auth_validity.auth, request.headers.get('CF-Connecting-IP'), true);
+          else if (auth_validity.status == 401) return new Response(JSON.stringify({message:`Login error: Incorrect email or password. (code:${auth_validity.status})`}), {status:401});
+          else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${auth_validity.status})`}), {status:auth_validity.status});
         }
-        else if (process === 'signup') return await SessionManager.Register(env, username, email, password, auth_status);
+        else if (process === 'signup') return await SessionManager.Register(env, username, email, password, auth_validity.status);
         else new Response(JSON.stringify({message:`Bad request: Invalid formdata. (code:${400})`}), {status:400});
-        return Response.json({message:`Form Error: Access denied. (code:${auth_status})`});
+        return Response.json({message:`Form Error: Access denied. (code:${auth_validity.status})`});
       }
     }
     if (cookies)
     {
       const logout = (new URL(request.url)).pathname == '/logout'; 
-      const session = await SessionManager.CookiesSession(cookies);
+      const auth = SessionManager.ParseSession(cookies);
       const response = await TodoApp.loadPage(app_page);
-      return await SessionManager.Auth(env, SessionManager.AuthResponse((await response.text()),response.headers), session, request.headers.get('CF-Connecting-IP'), false, logout); 
+      return await SessionManager.Auth(env, SessionManager.AuthResponse((await response.text()),response.headers), auth, request.headers.get('CF-Connecting-IP'), false, logout); 
     }
     return TodoApp.loadPage(login_page);
   }
@@ -61,16 +63,6 @@ class SessionManager {
     };
   }
 
-  static CookiesSession = (cookies) => {    
-    try { 
-      return cookies.split("session_token=")[1].split('.')[0]; }
-    catch { return null; }
-  }
-
-  static GetSession(user_id, session_token){
-    return `${user_id}:${session_token}.`;
-  }
-
   static async AuthValidity(env, email, password, if_its_new_session=false) {
     let status = 401;
     const auth = { user_id : await this.getUserID(email) }
@@ -80,44 +72,52 @@ class SessionManager {
         if (cache) {
           if (await Security.comparePasswords(password, cache.account.password)) {
             status = !if_its_new_session || !cache.session.token ? 200 : 409;
-            if (status == 200) auth.session_token = cache.session.token;
+            auth.session_token = cache.session.token;
           }
           else status = 401;
         } else status = 404;
       } else status = 400;
     } catch(error) { 
-      throw new Error(error); 
+      // throw new Error(error); 
       status = 500;
     }
-    return { status: status, session: auth.session_token ? this.GetSession(auth.user_id, auth.session_token) : null };
+    return { auth: auth, status: status };
   }
  
-  static async Auth(env, auth_response, cookies_session, ip_address, login=false, logout=false){ 
-    if (!cookies_session) return Examples.page404();
-    const cookies_auth = {
-      user_id: cookies_session.split(':')[0],
-      session_token: cookies_session.split(':')[1].split('.')[0]
-    }
+  static async Auth(env, auth_response, client_auth, ip_address, login=false, logout=false){ 
+    if (!client_auth) return Examples.page404();
     // Get user
-    const cache = JSON.parse(await this.getCache(env, cookies_auth.user_id));
+    const cache = JSON.parse(await this.getCache(env, client_auth.user_id));
     if (!cache) return Examples.page404();
     // Compare token 
-    const access = Security.compareToken(cache.session.token, cookies_auth.session_token);
+    const access = Security.compareToken(cache.session.token, client_auth.session_token);
     // Reset token 
-    const session_token = await this.ResetSessionToken(env, cache, cookies_auth.user_id, ip_address, login);
-    // Set Cookies
-    let new_cookies = 'session_token=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
-    if ((login || access) && !logout) {
-      // Auth & Sync
-      cookies_session = this.GetSession(cookies_auth.user_id, session_token);
-      new_cookies = `session_token=${cookies_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
-    }
+    const new_session = await this.GenerateSession(env, cache, client_auth.user_id, ip_address, login);
+    // Set Client Cache
+    let new_cookies = 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
+    // Auth & Sync
+    if (access && !logout) new_cookies = `session=${new_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
     else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
     auth_response.headers.append('Set-Cookie', new_cookies);
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static async ResetSessionToken(env, cache, user_id, ip_address, logged_in = null){
+  static ParseSession = (client_data) => { 
+    let auth = null;   
+    try { 
+      const client_session = client_data.split("session=")[1].split('.')[0];
+      auth = {
+        user_id: client_session.split(':')[0],
+        session_token: client_session.split(':')[1]
+      };
+    }
+    catch (error) { 
+      throw Error(error);
+    }
+    return auth;
+  }
+
+  static async GenerateSession(env, cache, user_id, ip_address, logged_in = null){
     // Log
     cache.session.ip_address = ip_address;
     cache.session.last_tried = new Date().toISOString();
@@ -126,9 +126,9 @@ class SessionManager {
     const new_session_token = await Security.generateJWT();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
-    return new_session_token;
+    return `${user_id}:${new_session_token}.`;
   }
- 
+
   static async Register(env, username, email, password, form_status){
     let message = "Register error: Something went wrong.";
     let status = 403;
