@@ -32,7 +32,7 @@ export default {
     if (cookies)
     {
       const logout = (new URL(request.url)).pathname == '/logout'; 
-      const auth = SessionManager.ParseSession(cookies);
+      const auth = await SessionManager.ParseSessionJWT(cookies);
       const response = await TodoApp.loadPage(app_page);
       return await SessionManager.Auth(env, SessionManager.AuthResponse((await response.text()),response.headers), auth, request.headers.get('CF-Connecting-IP'), false, logout); 
     }
@@ -88,41 +88,37 @@ class SessionManager {
     // Compare token 
     const access = Security.compareToken(cache.session.token, client_auth.session_token);
     // Reset token 
-    const new_session = await this.GenerateSession(env, cache, client_auth.user_id, ip_address, login);
+    const new_session_jwt = await this.GenerateSessionJWT(env, cache, client_auth.user_id, ip_address, login);
     // Set Client Cache
     let new_cookies = 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     // Auth & Sync
-    if (access && !logout) new_cookies = `session=${new_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
+    if (access && !logout) new_cookies = `session=${new_session_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
     else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
     auth_response.headers.append('Set-Cookie', new_cookies);
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static ParseSession(client_cache) { 
-    let auth = null;
-    try { 
-      const client_session = client_cache.split("session=")[1].split('.')[0];
-      auth = {
-        user_id: client_session.split(':')[0],
-        session_token: client_session.split(':')[1]
-      };
-    }
-    catch (error) { 
-      // throw Error(error);
-    }
-    return auth;
+  static secretKey = "myverysecretkey";
+  
+  static async ParseSessionJWT(client_cache) { 
+    const jwtToken = client_cache.split("session=")[1].split('?')[0];
+    const decoded_authPayload = await Security.parseJWT(jwtToken, this.secretKey);
+    return decoded_authPayload;
   }
-
-  static async GenerateSession(env, cache, user_id, ip_address, logged_in = null){
+  
+  static async GenerateSessionJWT(env, cache, user_id, ip_address, logged_in = null){
     // Log
     cache.session.ip_address = ip_address;
     cache.session.last_tried = new Date().toISOString();
     if (logged_in) cache.session.last_login = new Date().toISOString();
     //
-    const new_session_token = await Security.generateJWT();
+    const new_session_token = await Security.generateRandomToken();
     cache.session.token = new_session_token;
     await this.setCache(env, user_id, JSON.stringify(cache));
-    return `${user_id}:${new_session_token}.`;
+    // Generate JWT token
+		const authPayload = { user_id:user_id, session_token: new_session_token };
+    const jwtToken = await Security.generateJWT(authPayload, this.secretKey);
+    return `${jwtToken}?`;
   }
 
   static async Register(env, username, email, password, form_status){
@@ -130,7 +126,7 @@ class SessionManager {
     let status = 403;
     try{
       if (form_status === 404) {
-        if (!username) username = Security.uuid().substring(4, 16);
+        if (!username) username = Security.generateRandomToken(16);
         const user_id = await this.getUserID(email);
         const hashedPassword = await Security.hashPassword(password);
         const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login", last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };

@@ -38,28 +38,46 @@ export class Security{
     return current === compared ? true : false;
   }
 
-  // Random ID generator
-  static uuid(){
+  // Token generator
+  static async generateRandomToken(length = 48) {
     let uuid = '';
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-    const charIndex = Math.floor(Math.random() * chars.length);
-    uuid += chars[charIndex];
-    if (i === 7 || i === 11 || i === 15 || i === 19) uuid += '-';
-    }
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_';
+    for (let i = 0; i < length; i++) uuid += chars[Math.floor(Math.random() * chars.length)];
     return uuid;
   }
 
-  // JSON Web Token generator
-  static async generateJWT() {
-    let uuid = '';
-    const chars = '_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-    const charIndex = Math.floor(Math.random() * chars.length);
-    uuid += chars[charIndex];
-    if (i === 7 || i === 11 || i === 15 || i === 19) uuid += '-';
-    }
-    return uuid;
+  // Generate JSON Web Token 
+  static async generateJWT(payload, secretKey) {
+    // Encode Header
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const encodedHeader = btoa(JSON.stringify(header));
+    // Encode Payload
+    const encodedPayload = btoa(JSON.stringify(payload));
+    // Encode Signature
+    const signatureInput = encodedHeader + '.' + encodedPayload;
+    const encoder = new TextEncoder();
+    const signatureKey = await crypto.subtle.importKey('raw', encoder.encode(secretKey), { name: 'HMAC', hash: { name: 'SHA-256' } }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', signatureKey, encoder.encode(signatureInput));
+    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    // JWT
+    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+  }
+
+  // Parse JSON Web Token
+  static async parseJWT(jwt, secretKey) {
+    // Split JWT
+    const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const signatureInput = encodedHeader + '.' + encodedPayload;		
+    // Valid Signature
+    const signatureKey = await crypto.subtle.importKey('raw', encoder.encode(secretKey), { name: 'HMAC', hash: { name: 'SHA-256' } }, false, ['verify'] );
+    const signature = new Uint8Array(Array.from(atob(encodedSignature)).map(char => char.charCodeAt(0)));
+    const isSignatureValid = await crypto.subtle.verify('HMAC', signatureKey, signature, encoder.encode(signatureInput));
+    if (!isSignatureValid) throw new Error('JWT signature could not be verified!');
+    // Decode Payload
+    const decodedPayload = decoder.decode(new Uint8Array(Array.from(atob(encodedPayload)).map(char => char.charCodeAt(0))));
+    return JSON.parse(decodedPayload);
   }
 }
 
@@ -72,7 +90,7 @@ export class Examples {
     const html = `<!DOCTYPE html><title>Unauthorized Access</title><h1>Unauthorized Access</h1><p>You are not authorized to access this resource.</p><script>setTimeout(() => { window.location.href = '/home'; }, 1000);</script>`;
     return new Response(html, { headers: { 'Content-Type': 'text/html' } });
   }
-  static pageRedirect(url, img, delay, clean_cookies){
+  static pageRedirect(url, img, delay, clean_cookies = false){
     const html = this.htmlGenerateCard(img, "Redirecting", `to ${url}...`, "Almost there, please wait a moment") + `<script>setTimeout(() => { window.location.href = '${url}'; }, ${delay});</script>`; 
     const response = new Response(html, { headers: { 'Content-Type': 'text/html' } });
     if (clean_cookies) {
