@@ -67,7 +67,7 @@ class SessionManager {
     catch { return null; }
   }
 
-  static ToSession(user_id, session_token){
+  static GetSession(user_id, session_token){
     return `${user_id}:${session_token}.`;
   }
 
@@ -89,7 +89,7 @@ class SessionManager {
       throw new Error(error); 
       status = 500;
     }
-    return { status: status, session: auth.session_token ? this.ToSession(auth.user_id, auth.session_token) : null };
+    return { status: status, session: auth.session_token ? this.GetSession(auth.user_id, auth.session_token) : null };
   }
  
   static async Auth(env, auth_response, cookies_session, ip_address, login=false, logout=false){ 
@@ -109,7 +109,7 @@ class SessionManager {
     let new_cookies = 'session_token=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     if ((login || access) && !logout) {
       // Auth & Sync
-      cookies_session = this.ToSession(cookies_auth.user_id, session_token);
+      cookies_session = this.GetSession(cookies_auth.user_id, session_token);
       new_cookies = `session_token=${cookies_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
     }
     else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
