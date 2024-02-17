@@ -72,9 +72,14 @@ export class Examples {
     const html = `<!DOCTYPE html><title>Unauthorized Access</title><h1>Unauthorized Access</h1><p>You are not authorized to access this resource.</p><script>setTimeout(() => { window.location.href = '/home'; }, 1000);</script>`;
     return new Response(html, { headers: { 'Content-Type': 'text/html' } });
   }
-  static pageRedirect(url, img, delay){
-    const html =  this.htmlGenerateCard(img, "Redirecting", `to ${url}...`, "Almost there, please wait a moment") + `<script>setTimeout(() => { window.location.href = '${url}'; }, ${delay});</script>`; 
-    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+  static pageRedirect(url, img, delay, clean_cookies){
+    const html = this.htmlGenerateCard(img, "Redirecting", `to ${url}...`, "Almost there, please wait a moment") + `<script>setTimeout(() => { window.location.href = '${url}'; }, ${delay});</script>`; 
+    const response = new Response(html, { headers: { 'Content-Type': 'text/html' } });
+    if (clean_cookies) {
+      response.headers.set('Set-Cookie', 'session=null; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/');
+      response.headers.set('Content-Type', 'text/plain');
+    }
+    return response;
   }
   // HTML
   static htmlGenerateCard(img, header, text, footer) {

@@ -85,7 +85,7 @@ class SessionManager {
   }
  
   static async Auth(env, auth_response, client_auth, ip_address, login=false, logout=false){ 
-    if (!client_auth) return Examples.page404();
+    if (!client_auth) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, true);
     // Get user
     const cache = JSON.parse(await this.getCache(env, client_auth.user_id));
     if (!cache) return Examples.page404();
@@ -97,22 +97,22 @@ class SessionManager {
     let new_cookies = 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
     // Auth & Sync
     if (access && !logout) new_cookies = `session=${new_session}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
-    else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
+    else auth_response.body = Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
     auth_response.headers.append('Set-Cookie', new_cookies);
     return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
   }
 
-  static ParseSession = (client_data) => { 
-    let auth = null;   
+  static ParseSession(client_cache) { 
+    let auth = null;
     try { 
-      const client_session = client_data.split("session=")[1].split('.')[0];
+      const client_session = client_cache.split("session=")[1].split('.')[0];
       auth = {
         user_id: client_session.split(':')[0],
         session_token: client_session.split(':')[1]
       };
     }
     catch (error) { 
-      throw Error(error);
+      // throw Error(error);
     }
     return auth;
   }
