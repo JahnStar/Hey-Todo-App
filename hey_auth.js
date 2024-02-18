@@ -33,6 +33,7 @@ export class SessionManager {
     }
     
     static async AuthResponse(env, response, client_auth, ip_address, login=false, logout=false){
+      if (!response) response = new Response("404 Not Found", { status: 404, headers: {'Content-Type': 'text/plain'}});
       const auth_response = { 
         body: await response.text(),
         headers: response.headers ? response.headers : new Headers()
@@ -87,7 +88,7 @@ export class SessionManager {
           if (!username) username = Security.generateRandomToken(16);
           const user_id = await this.getUserID(email);
           const hashedPassword = await Security.hashPassword(password);
-          const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login", last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : { todos: [{ id: "1", name: "use a todo app", completed: true}] } };
+          const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login", last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : '{"todos":[{"id":"1","name":"use a todo app","completed":true}]}' };
           try{
             await this.setCache(env, user_id, JSON.stringify(new_user_data));
             message = "Account created!"

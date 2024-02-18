@@ -53,14 +53,16 @@
   </body>
 
   <script>
-    window.todos = []; // $TODOS
+    window.todos = $TODOS
 
     var updateTodos = function () {
       fetch('/', {
         method: 'PUT',
-        body: JSON.stringify({ todos: window.todos })
+        body: JSON.stringify({ data: { todos: window.todos } })
+      }).then(async function(response){
+        const response_data = await response.json();
+        if (response_data.message) alert(response_data.message);
       });
-      populateTodos();
     };
 
     var completeTodo = function (evt) {
@@ -70,7 +72,6 @@
       var todo = newTodoSet.find(t => t.id == todoElement.dataset.todo);
       todo.completed = !todo.completed;
       window.todos = newTodoSet;
-      updateTodos();
     };
 
     var populateTodos = function () {
@@ -109,12 +110,13 @@
           completed: false
         });
         input.value = '';
-        updateTodos();
+        populateTodos();
       }
     };
 
     var logout = function() { window.location.href = `/logout`; };
 
+    document.querySelector('#save').addEventListener('click', updateTodos);
     document.querySelector('#logout').addEventListener('click', logout);
     document.querySelector('#create').addEventListener('click', createTodo);
   </script>

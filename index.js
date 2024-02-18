@@ -34,10 +34,31 @@ export default {
     }
     if (cookies)
     {
-      const logout = (new URL(request.url)).pathname == '/logout';
       const auth = await HeyAuth.ParseSessionJWT(cookies);
-      const requested_response = await TodoApp.loadPage(app_page);
-      return await HeyAuth.AuthResponse(env, requested_response, auth, request.headers.get('CF-Connecting-IP'), false, logout);
+      const logout = (new URL(request.url)).pathname == '/logout';
+      let requested_response;
+      let requested_callback;
+      if (request.method === 'GET') requested_response = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, auth.user_id)));
+      else if (request.method === 'PUT') {
+        requested_callback = async (headers) => {
+          const request_json = await request.json();
+          if (request_json.data)
+          {
+            const cache = JSON.parse(await HeyAuth.getCache(env, auth.user_id));
+            cache.data = JSON.stringify(request_json.data);
+            await HeyAuth.setCache(env, auth.user_id, JSON.stringify(cache));
+            requested_response = new Response(JSON.stringify({message:"Saved successfully!"}), {status: 200, headers:headers});
+          }
+        }
+      }
+      const authed = await HeyAuth.AuthResponse(env, requested_response, auth, request.headers.get('CF-Connecting-IP'), false, logout);
+      if (authed.status == 200) {
+        if (requested_callback){
+          await requested_callback(authed.headers);
+          if (requested_response) return requested_response;
+        }
+      }
+      return authed;
     }
     return TodoApp.loadPage(login_page);
   }
@@ -46,18 +67,18 @@ export default {
 class TodoApp {
   static async loadPage(html, cache_data = null) {
     if (!cache_data) return new Response(html, { headers: { 'Content-Type': 'text/html' } });
-
+    const todos = JSON.parse(cache_data.data).todos;
     let body = html.replace(
       '$TODOS',
       JSON.stringify(
-        cache_data.data.todos?.map(todo => ({
+        todos?.map(todo => ({
           id: Security.escapeHtml(todo.id),
           name: Security.escapeHtml(todo.name),
           completed: !!todo.completed
         })) ?? []
       )
     );
-    body = body.replace(/\$TITLE_USER/g, Security.escapeHtml(cache_data.account.email));
+    body = body.replace(/\$TITLE_USER/g, Security.escapeHtml(cache_data.account.username));
 
     return new Response(body, { headers: { 'Content-Type': 'text/html' }});
   }
