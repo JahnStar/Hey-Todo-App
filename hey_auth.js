@@ -13,14 +13,15 @@ export class SessionManager {
     
     static async AuthValidity(env, email, password, if_its_new_session=false) {
       let status = 401;
-      const fake_payload = { user_id : await this.getUserID(email) }
+      const login_payload = { user_id : await this.getUserID(email) }
       try{
         if (email && email.trim() && password && password.trim()){
-          const cache = JSON.parse(await this.getCache(env, fake_payload.user_id));
+          const cache = JSON.parse(await this.getCache(env, login_payload.user_id));
           if (cache) {
             if (await Security.comparePasswords(password, cache.account.password)) {
               status = !if_its_new_session || !cache.session.token ? 200 : 409;
-              fake_payload.session_token = cache.session.token;
+              login_payload.session_token = cache.session.token;
+              login_payload.login = true;
             }
             else status = 401;
           } else status = 404;
@@ -29,10 +30,16 @@ export class SessionManager {
         // throw new Error(error); 
         status = 500;
       }
-      return { payload: fake_payload, status: status };
+      return { payload: login_payload, status: status };
     }
 
-    static async AuthResponse(env, response, client_payload, ip_address, login=false, logout=false){
+    static async AuthHeaders(env, headers, client_payload, ip_address, logout=false){
+      const empty_response = new Response("404", {headers:headers});
+      const response = await this.AuthResponse(env, empty_response, client_payload, ip_address, logout);
+      return response.headers;
+    }
+
+    static async AuthResponse(env, response, client_payload, ip_address, logout=false){
       if (!response) response = new Response("404 Not Found", { status: 404, headers: {'Content-Type': 'text/plain'}});
       const auth_response = { 
         body: await response.text(),
@@ -43,7 +50,7 @@ export class SessionManager {
       // Get user
       const cache = JSON.parse(await this.getCache(env, client_payload.user_id));
       if (!cache) return Examples.page404(401); // status must be different than 200
-      const access_jwt = await this.Auth(env, cache, client_payload, ip_address, login);
+      const access_jwt = await this.Auth(env, cache, client_payload, ip_address);
       // Set Client Cache
       if (access_jwt && !logout) auth_response.headers.append('Set-Cookie', `session=${access_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
       else {
@@ -53,11 +60,11 @@ export class SessionManager {
       return new Response(auth_response.body, {status:access_jwt ? 200 : 401, headers: auth_response.headers});
     }
   
-    static async Auth(env, cache, client_payload, ip_address, login=false){    
+    static async Auth(env, cache, client_payload, ip_address){    
       // Compare session token 
       const access = Security.compareToken(cache.session.token, client_payload.session_token);
       // Reset session jwt
-      const new_session_jwt = await this.GenerateSessionJWT(env, cache, client_payload.user_id, ip_address, login);
+      const new_session_jwt = await this.GenerateSessionJWT(env, cache, client_payload.user_id, ip_address, client_payload.login);
       // Auth & sync
       return access ? new_session_jwt : null;
     }

@@ -23,7 +23,7 @@ export default {
         const auth_validity = await HeyAuth.AuthValidity(env, email, password);
         //
         if (process === 'login') {
-          if (auth_validity.status == 200) return await HeyAuth.AuthResponse(env, Response.json({login:"Successfully." }), auth_validity.payload, request.headers.get('CF-Connecting-IP'), true);
+          if (auth_validity.status == 200) return await HeyAuth.AuthResponse(env, Response.json({login:"Successfully." }), auth_validity.payload, request.headers.get('CF-Connecting-IP'));
           else if (auth_validity.status == 401) return new Response(JSON.stringify({message:`Login error: Incorrect email or password. (code:${auth_validity.status})`}), {status:401});
           else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${auth_validity.status})`}), {status:auth_validity.status});
         }
@@ -36,29 +36,33 @@ export default {
     {
       const client_payload = await HeyAuth.ParseSessionJWT(cookies);
       const logout = (new URL(request.url)).pathname == '/logout';
-      let requested_response;
-      let requested_callback;
-      if (request.method === 'GET') requested_response = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, client_payload.user_id)));
-      else if (request.method === 'PUT') {
-        requested_callback = async (headers) => {
-          const request_json = await request.json();
-          if (request_json.data)
-          {
-            const cache = JSON.parse(await HeyAuth.getCache(env, client_payload.user_id));
-            cache.data = JSON.stringify(request_json.data);
-            await HeyAuth.setCache(env, client_payload.user_id, JSON.stringify(cache));
-            requested_response = new Response(JSON.stringify({message:"Saved successfully!"}), {status: 200, headers:headers});
-          }
-        }
+      const ip_address = request.headers.get('CF-Connecting-IP');
+      //
+      if (request.method === 'GET') {
+        const requested_response = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, client_payload.user_id)));
+        return  await HeyAuth.AuthResponse(env, requested_response, client_payload, ip_address, logout);
       }
-      const authed = await HeyAuth.AuthResponse(env, requested_response, client_payload, request.headers.get('CF-Connecting-IP'), false, logout);
-      if (authed.status == 200) {
-        if (requested_callback){
-          await requested_callback(authed.headers);
-          if (requested_response) return requested_response;
-        }
-      }
-      return authed;
+      // let requested_callback;
+      // else if (request.method === 'PUT') {
+      //   requested_callback = async (headers) => {
+      //     const request_json = await request.json();
+      //     if (request_json.data)
+      //     {
+      //       const cache = JSON.parse(await HeyAuth.getCache(env, client_payload.user_id));
+      //       cache.data = JSON.stringify(request_json.data);
+      //       await HeyAuth.setCache(env, client_payload.user_id, JSON.stringify(cache));
+      //       requested_response = new Response(JSON.stringify({message:"Saved successfully!"}), {status: 200, headers:headers});
+      //     }
+      //   }
+      // }
+      // const authed = await HeyAuth.AuthResponse(env, requested_response, client_payload, request.headers.get('CF-Connecting-IP'), logout);
+      // if (authed.status == 200) {
+      //   if (requested_callback){
+      //     await requested_callback(authed.headers);
+      //     if (requested_response) return requested_response;
+      //   }
+      // }
+      // return authed;
     }
     return TodoApp.loadPage(login_page);
   }
