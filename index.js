@@ -31,10 +31,10 @@ export default {
     }
     if (cookies)
     {
-      const logout = (new URL(request.url)).pathname == '/logout'; 
+      const logout = (new URL(request.url)).pathname == '/logout';
       const auth = await SessionManager.ParseSessionJWT(cookies);
       const response = await TodoApp.loadPage(app_page);
-      return await SessionManager.Auth(env, SessionManager.AuthResponse((await response.text()),response.headers), auth, request.headers.get('CF-Connecting-IP'), false, logout); 
+      return await SessionManager.AuthResponse(env, response, auth, request.headers.get('CF-Connecting-IP'), false, logout);
     }
     return TodoApp.loadPage(login_page);
   }
@@ -49,14 +49,6 @@ class SessionManager {
 
   static async getUserID(email) {
     return await Security.hashPassword(email);
-  }
-
-  static AuthResponse(body, headers, status = 200){
-    return { 
-      body: body,
-      status: status,
-      headers: headers ? headers : new Headers()
-    };
   }
 
   static async AuthValidity(env, email, password, if_its_new_session=false) {
@@ -79,7 +71,15 @@ class SessionManager {
     }
     return { auth: auth, status: status };
   }
- 
+  
+  static async AuthResponse(env, response, client_auth, ip_address, login=false, logout=false){
+    const auth_response = { 
+      body: await response.text(),
+      headers: response.headers ? response.headers : new Headers()
+    }
+    return await this.Auth(env, auth_response, client_auth, ip_address, login, logout); 
+  }
+
   static async Auth(env, auth_response, client_auth, ip_address, login=false, logout=false){ 
     if (!client_auth) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, true);
     // Get user
@@ -95,14 +95,12 @@ class SessionManager {
     if (access && !logout) new_cookies = `session=${new_session_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
     else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
     auth_response.headers.append('Set-Cookie', new_cookies);
-    return new Response(auth_response.body, { status: auth_response.status, headers: auth_response.headers }); 
+    return new Response(auth_response.body, { status: access ? 200 : 401, headers: auth_response.headers }); 
   }
 
-  static secretKey = "myverysecretkey";
-  
   static async ParseSessionJWT(client_cache) { 
     const jwtToken = client_cache.split("session=")[1].split('?')[0];
-    const decoded_authPayload = await Security.parseJWT(jwtToken, this.secretKey);
+    const decoded_authPayload = await Security.parseJWT(jwtToken, "Www.JahnStarGames.coM");
     return decoded_authPayload;
   }
   
@@ -117,7 +115,7 @@ class SessionManager {
     await this.setCache(env, user_id, JSON.stringify(cache));
     // Generate JWT token
 		const authPayload = { user_id:user_id, session_token: new_session_token };
-    const jwtToken = await Security.generateJWT(authPayload, this.secretKey);
+    const jwtToken = await Security.generateJWT(authPayload, "Www.JahnStarGames.coM");
     return `${jwtToken}?`;
   }
 
