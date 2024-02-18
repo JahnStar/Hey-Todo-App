@@ -1,6 +1,6 @@
 // Developed by Halil Emre Yildiz (Github:@JahnStar)
 import { Security, Examples } from './helper.js';
-export class SessionManager {
+export class HeyAuth {
     // Requirements
     static Init(setFunction, getFunction) {
         this.setCache = setFunction;
@@ -33,7 +33,8 @@ export class SessionManager {
       return { payload: login_payload, status: status };
     }
 
-    static async AuthResponse(env, response, client_payload, ip_address, logout=false){
+    // Auth & Response
+    static async Response(env, response, client_payload, ip_address, logout=false){
       if (!response) response = new Response("404 Not Found", { status: 404, headers: {'Content-Type': 'text/plain'}});
       const auth_response = { 
         body: await response.text(),

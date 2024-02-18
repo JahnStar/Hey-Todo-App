@@ -1,4 +1,4 @@
-import { SessionManager as HeyAuth } from './hey_auth.js';
+import { HeyAuth } from './hey_auth.js';
 import { Security } from './helper.js';
 import login_page from './login.html';
 import app_page from './app.html';
@@ -23,7 +23,7 @@ export default {
         const auth_validity = await HeyAuth.AuthValidity(env, email, password);
         //
         if (process === 'login') {
-          if (auth_validity.status == 200) return await HeyAuth.AuthResponse(env, Response.json({login:"Successfully." }), auth_validity.payload, request.headers.get('CF-Connecting-IP'));
+          if (auth_validity.status == 200) return await HeyAuth.Response(env, Response.json({login:"Successfully." }), auth_validity.payload, request.headers.get('CF-Connecting-IP'));
           else if (auth_validity.status == 401) return new Response(JSON.stringify({message:`Login error: Incorrect email or password. (code:${auth_validity.status})`}), {status:401});
           else return new Response(JSON.stringify({message:`Login error: Account not found. (code:${auth_validity.status})`}), {status:auth_validity.status});
         }
@@ -40,7 +40,7 @@ export default {
       //
       if (request.method === 'GET') {
         const dashboard = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, client_payload.user_id)));
-        return await HeyAuth.AuthResponse(env, dashboard, client_payload, ip_address, logout);
+        return await HeyAuth.Response(env, dashboard, client_payload, ip_address, logout);
       }
       else if (request.method === 'PUT'){
         let put = async () => {
@@ -51,12 +51,18 @@ export default {
             await HeyAuth.setCache(env, client_payload.user_id, JSON.stringify(cache));
           }
         };
-      
-        const response = Response.json({message: "Saved successfully!"});
-        return HeyAuth.AuthResponse(env, response, client_payload, ip_address, logout)
-          .then(async (new_response) => {
-            if (new_response.status === 200) await put();
-            return new_response;
+        
+        return HeyAuth.Response(env, new Response(), client_payload, ip_address, logout)
+          .then(async (response) => {
+            let response_body;
+            if (response.status === 200) 
+            {
+              await put();
+              response_body = JSON.stringify({message: "Saved successfully!"});
+            }
+            else response_body = JSON.stringify({message: `Error: Save failed! (code:${response.status})`});
+            //
+            return new Response(response_body, {status:response.status, headers:response.headers});
           });
       }
     }
