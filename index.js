@@ -39,30 +39,26 @@ export default {
       const ip_address = request.headers.get('CF-Connecting-IP');
       //
       if (request.method === 'GET') {
-        const requested_response = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, client_payload.user_id)));
-        return  await HeyAuth.AuthResponse(env, requested_response, client_payload, ip_address, logout);
+        const dashboard = await TodoApp.loadPage(app_page, JSON.parse(await HeyAuth.getCache(env, client_payload.user_id)));
+        return await HeyAuth.AuthResponse(env, dashboard, client_payload, ip_address, logout);
       }
-      // let requested_callback;
-      // else if (request.method === 'PUT') {
-      //   requested_callback = async (headers) => {
-      //     const request_json = await request.json();
-      //     if (request_json.data)
-      //     {
-      //       const cache = JSON.parse(await HeyAuth.getCache(env, client_payload.user_id));
-      //       cache.data = JSON.stringify(request_json.data);
-      //       await HeyAuth.setCache(env, client_payload.user_id, JSON.stringify(cache));
-      //       requested_response = new Response(JSON.stringify({message:"Saved successfully!"}), {status: 200, headers:headers});
-      //     }
-      //   }
-      // }
-      // const authed = await HeyAuth.AuthResponse(env, requested_response, client_payload, request.headers.get('CF-Connecting-IP'), logout);
-      // if (authed.status == 200) {
-      //   if (requested_callback){
-      //     await requested_callback(authed.headers);
-      //     if (requested_response) return requested_response;
-      //   }
-      // }
-      // return authed;
+      else if (request.method === 'PUT'){
+        let put = async () => {
+          const request_json = await request.json();
+          if (request_json.data) {
+            const cache = JSON.parse(await HeyAuth.getCache(env, client_payload.user_id));
+            cache.data = JSON.stringify(request_json.data);
+            await HeyAuth.setCache(env, client_payload.user_id, JSON.stringify(cache));
+          }
+        };
+      
+        const response = Response.json({message: "Saved successfully!"});
+        return HeyAuth.AuthResponse(env, response, client_payload, ip_address, logout)
+          .then(async (new_response) => {
+            if (new_response.status === 200) await put();
+            return new_response;
+          });
+      }
     }
     return TodoApp.loadPage(login_page);
   }

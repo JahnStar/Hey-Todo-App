@@ -33,24 +33,17 @@ export class SessionManager {
       return { payload: login_payload, status: status };
     }
 
-    static async AuthHeaders(env, headers, client_payload, ip_address, logout=false){
-      const empty_response = new Response("404", {headers:headers});
-      const response = await this.AuthResponse(env, empty_response, client_payload, ip_address, logout);
-      return response.headers;
-    }
-
     static async AuthResponse(env, response, client_payload, ip_address, logout=false){
       if (!response) response = new Response("404 Not Found", { status: 404, headers: {'Content-Type': 'text/plain'}});
       const auth_response = { 
         body: await response.text(),
-        headers: response.headers ? response.headers : new Headers(),
-        status: response.status ? response.status : 200
+        headers: response.headers ? response.headers : new Headers()
       }
       if (!client_payload) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, 401, true);  // status must be different than 200
       // Get user
       const cache = JSON.parse(await this.getCache(env, client_payload.user_id));
       if (!cache) return Examples.page404(401); // status must be different than 200
-      const access_jwt = await this.Auth(env, cache, client_payload, ip_address);
+      const access_jwt = await this.SyncAuth(env, cache, client_payload, ip_address);
       // Set Client Cache
       if (access_jwt && !logout) auth_response.headers.append('Set-Cookie', `session=${access_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
       else {
@@ -59,8 +52,9 @@ export class SessionManager {
       }
       return new Response(auth_response.body, {status:access_jwt ? 200 : 401, headers: auth_response.headers});
     }
-  
-    static async Auth(env, cache, client_payload, ip_address){    
+    
+    // Don't use this in any other class
+    static async SyncAuth(env, cache, client_payload, ip_address){    
       // Compare session token 
       const access = Security.compareToken(cache.session.token, client_payload.session_token);
       // Reset session jwt
