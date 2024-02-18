@@ -13,14 +13,14 @@ export class SessionManager {
     
     static async AuthValidity(env, email, password, if_its_new_session=false) {
       let status = 401;
-      const auth = { user_id : await this.getUserID(email) }
+      const fake_payload = { user_id : await this.getUserID(email) }
       try{
         if (email && email.trim() && password && password.trim()){
-          const cache = JSON.parse(await this.getCache(env, auth.user_id));
+          const cache = JSON.parse(await this.getCache(env, fake_payload.user_id));
           if (cache) {
             if (await Security.comparePasswords(password, cache.account.password)) {
               status = !if_its_new_session || !cache.session.token ? 200 : 409;
-              auth.session_token = cache.session.token;
+              fake_payload.session_token = cache.session.token;
             }
             else status = 401;
           } else status = 404;
@@ -29,38 +29,41 @@ export class SessionManager {
         // throw new Error(error); 
         status = 500;
       }
-      return { auth: auth, status: status };
+      return { payload: fake_payload, status: status };
     }
-    
-    static async AuthResponse(env, response, client_auth, ip_address, login=false, logout=false){
+
+    static async AuthResponse(env, response, client_payload, ip_address, login=false, logout=false){
       if (!response) response = new Response("404 Not Found", { status: 404, headers: {'Content-Type': 'text/plain'}});
       const auth_response = { 
         body: await response.text(),
-        headers: response.headers ? response.headers : new Headers()
+        headers: response.headers ? response.headers : new Headers(),
+        status: response.status ? response.status : 200
       }
-      return await this.Auth(env, auth_response, client_auth, ip_address, login, logout); 
-    }
-  
-    static async Auth(env, auth_response, client_auth, ip_address, login=false, logout=false){ 
-      if (!client_auth) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, true);
+      if (!client_payload) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, 401, true);  // status must be different than 200
       // Get user
-      const cache = JSON.parse(await this.getCache(env, client_auth.user_id));
-      if (!cache) return Examples.page404();
-      // Compare token 
-      const access = Security.compareToken(cache.session.token, client_auth.session_token);
-      // Reset token 
-      const new_session_jwt = await this.GenerateSessionJWT(env, cache, client_auth.user_id, ip_address, login);
+      const cache = JSON.parse(await this.getCache(env, client_payload.user_id));
+      if (!cache) return Examples.page404(401); // status must be different than 200
+      const access_jwt = await this.Auth(env, cache, client_payload, ip_address, login);
       // Set Client Cache
-      let new_cookies = 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly';
-      // Auth & Sync
-      if (access && !logout) new_cookies = `session=${new_session_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
-      else auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
-      auth_response.headers.append('Set-Cookie', new_cookies);
-      return new Response(auth_response.body, { status: access ? 200 : 401, headers: auth_response.headers }); 
+      if (access_jwt && !logout) auth_response.headers.append('Set-Cookie', `session=${access_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
+      else {
+        auth_response.body = await Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000).text();
+        auth_response.headers.append('Set-Cookie', 'session=null; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Secure; HttpOnly');
+      }
+      return new Response(auth_response.body, {status:access_jwt ? 200 : 401, headers: auth_response.headers});
     }
   
-    static async ParseSessionJWT(client_cache) { 
-      const jwtToken = client_cache.split("session=")[1].split('?')[0];
+    static async Auth(env, cache, client_payload, ip_address, login=false){    
+      // Compare session token 
+      const access = Security.compareToken(cache.session.token, client_payload.session_token);
+      // Reset session jwt
+      const new_session_jwt = await this.GenerateSessionJWT(env, cache, client_payload.user_id, ip_address, login);
+      // Auth & sync
+      return access ? new_session_jwt : null;
+    }
+  
+    static async ParseSessionJWT(client_payload) { 
+      const jwtToken = client_payload.split("session=")[1].split('?')[0];
       const decoded_authPayload = await Security.parseJWT(jwtToken, "Www.JahnStarGames.coM");
       return decoded_authPayload;
     }

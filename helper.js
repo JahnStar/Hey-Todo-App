@@ -82,17 +82,17 @@ export class Security{
 }
 
 export class Examples {
-  static page404(){
+  static page404(status=404){
     const html = `<!DOCTYPE html><title>404 Not Found</title><h1>404 Not Found</h1><script>setTimeout(() => { window.location.href = '/home'; }, 3000);</script>`;
-    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+    return new Response(html, { status: status, headers: { 'Content-Type': 'text/html' } });
   }
-  static page401(){
+  static page401(status=401){
     const html = `<!DOCTYPE html><title>Unauthorized Access</title><h1>Unauthorized Access</h1><p>You are not authorized to access this resource.</p><script>setTimeout(() => { window.location.href = '/home'; }, 1000);</script>`;
-    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+    return new Response(html, { status: status, headers: { 'Content-Type': 'text/html' } });
   }
-  static pageRedirect(url, img, delay, clean_cookies = false){
+  static pageRedirect(url, img, delay, status=304, clean_cookies = false){
     const html = this.htmlGenerateCard(img, "Redirecting", `to ${url}...`, "Almost there, please wait a moment") + `<script>setTimeout(() => { window.location.href = '${url}'; }, ${delay});</script>`; 
-    const response = new Response(html, { headers: { 'Content-Type': 'text/html' } });
+    const response = new Response(html, { status:status, headers: { 'Content-Type': 'text/html' } });
     if (clean_cookies) {
       response.headers.set('Set-Cookie', 'session=null; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/');
       response.headers.set('Content-Type', 'text/plain');
