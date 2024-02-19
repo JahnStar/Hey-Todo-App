@@ -43,7 +43,7 @@ export class HeyAuth {
       if (!client_payload) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, 401, true);  // status must be different than 200
       // Get user
       const cache = JSON.parse(await this.getCache(env, client_payload.user_id));
-      if (!cache) return Examples.page404(401); // status must be different than 200
+      if (!cache) return Examples.pageRedirect('/home', 'https://github.com/jahnstar.png', 2000, 404, true); // status must be different than 200
       const access_jwt = await this.SyncAuth(env, cache, client_payload, ip_address);
       // Set Client Cache
       if (access_jwt && !logout) auth_response.headers.append('Set-Cookie', `session=${access_jwt}; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
@@ -93,7 +93,7 @@ export class HeyAuth {
           if (!username) username = Security.generateRandomToken(16);
           const user_id = await this.getUserID(email);
           const hashedPassword = await Security.hashPassword(password);
-          const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login", last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : '{"todos":[{"id":"1","name":"use a todo app","completed":true}]}' };
+          const new_user_data = { account: { username: username, email: email, password: hashedPassword }, session: { ip_address: "no_login", last_tried:"", last_login: "", created: new Date().toISOString(), token: "+" }, data : "{\"todos\":[{\"id\":\"example\",\"name\":\""+username+"'s Todo List\",\"list\":[{\"id\":\"1\",\"name\":\"example\",\"completed\":false}]}]}" };
           try{
             await this.setCache(env, user_id, JSON.stringify(new_user_data));
             message = "Account created!"

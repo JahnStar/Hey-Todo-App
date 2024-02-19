@@ -90,7 +90,7 @@ export class Examples {
     const html = `<!DOCTYPE html><title>Unauthorized Access</title><h1>Unauthorized Access</h1><p>You are not authorized to access this resource.</p><script>setTimeout(() => { window.location.href = '/home'; }, 1000);</script>`;
     return new Response(html, { status: status, headers: { 'Content-Type': 'text/html' } });
   }
-  static pageRedirect(url, img, delay, status=304, clean_cookies = false){
+  static pageRedirect(url, img, delay, status=302, clean_cookies = false){
     const html = this.htmlGenerateCard(img, "Redirecting", `to ${url}...`, "Almost there, please wait a moment") + `<script>setTimeout(() => { window.location.href = '${url}'; }, ${delay});</script>`; 
     const response = new Response(html, { status:status, headers: { 'Content-Type': 'text/html' } });
     if (clean_cookies) {
