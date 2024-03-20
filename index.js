@@ -1,3 +1,4 @@
+// Developed by Halil Emre Yildiz (Github:@JahnStar)
 import { HeyAuth } from './hey_auth.js';
 import { Security } from './helper.js';
 import login_page from './login.html';

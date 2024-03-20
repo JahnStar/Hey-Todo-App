@@ -1,3 +1,4 @@
+// Developed by Halil Emre Yildiz (Github:@JahnStar)
 export class Security{
   static escaped = {
     '"': '&quot;',
