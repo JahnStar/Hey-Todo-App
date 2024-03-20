@@ -24,7 +24,7 @@ To use this Todo app, follow these steps:
 <div align="center">
     <a align="center" href="https://todo.jahnstar.com/" target="_blank"><strong>Click for Demo</strong></a>
     <br><br>
-    <img src="./basic-todo-app.png?raw=true" width="40%">
+    <img src="./basic-todo-app.png?raw=true" width="65%">
 </div>
 
 ## Contributing
