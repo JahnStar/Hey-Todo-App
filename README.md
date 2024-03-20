@@ -9,13 +9,6 @@ This is a simple Todo app built using Cloudflare Worker. It allows users to crea
 * Responsive UI design with HTML templates for login and app pages
 * Error handling and validation for form submissions
 
-## Demo
-<div align="center">
-    <img src="./basic-todo-app.png?raw=true" width="30%">
-    <br><br>
-    <a align="center" href="https://todo.jahnstar.com/" target="_blank"><strong>Demo Site</strong></a>
-</div>
-
 ## How to Use
 
 To use this Todo app, you will need to set up a Cloudflare account and configure your project as described in the [Cloudflare Workers documentation](https://developers.cloudflare.com/workers/).
@@ -27,6 +20,12 @@ To use this Todo app, follow these steps:
 3. Deploy your app.
 4. That's it! Your Todo app will be accessible now at `https://your-worker-name.your-subdomain.workers.dev/`.
 
+## Demo
+<div align="center">
+    <a align="center" href="https://todo.jahnstar.com/" target="_blank"><strong>Click for Demo</strong></a>
+    <br><br>
+    <img src="./basic-todo-app.png?raw=true" width="40%">
+</div>
 
 ## Contributing
 
