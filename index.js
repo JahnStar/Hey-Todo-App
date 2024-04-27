@@ -1,3 +1,4 @@
+// Developed by Halil Emre Yildiz (Github:@JahnStar)
 import { HeyAuth } from './hey_auth.js';
 import { Security } from './helper.js';
 import login_page from './login.html';
@@ -79,13 +80,12 @@ class TodoApp {
       JSON.stringify(
         todos?.map(todo => ({
           id: Security.escapeHtml(todo.id),
-          name: Security.escapeHtml(todo.name),
-          completed: !!todo.completed
+          name: todo.name, // use Security.escapeHtml()
+          list: todo.list // use Security.escapeHtml()
         })) ?? []
       )
     );
     body = body.replace(/\$TITLE_USER/g, Security.escapeHtml(cache_data.account.username));
-
     return new Response(body, { headers: { 'Content-Type': 'text/html' }});
   }
 

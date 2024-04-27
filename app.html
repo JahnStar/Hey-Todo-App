@@ -1,3 +1,4 @@
+// Developed by Halil Emre Yildiz (Github:@JahnStar)
 <!doctype html>
 <html>
   <head>
@@ -7,128 +8,305 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css" rel="stylesheet" />
   </head>
 
-  <body class="bg-white">
-    <div class="h-screen flex flex-col items-center justify-center mt-8">
-      <div class="bg-blue-50 shadow-md rounded px-8 pt-6 py-8 mb-4">
-        <h1 class="block text-grey-800 text-md font-bold mb-2">Welcome, $TITLE_USER</h1>
-        <br>
-        <div class="flex">
-          <button
-          class="bg-red-500 hover:bg-red-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            id="logout"
-            type="submit"
-            style="width:100%; margin-left: 0;"
-          >
-            Logout
-          </button>
-        </div> 
-        <br>
-        <h1 class="block text-grey-800 text-md font-bold mb-2">Todos</h2>
-        <div class="flex">
-          <input
-            class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-800 leading-tight focus:outline-none focus:shadow-outline"
-            type="text"
-            name="name"
-            placeholder="A new todo"
-          />
-          <button
-            class="bg-blue-500 hover:bg-blue-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            id="create"
-            type="submit"
-          >
-            Create
-          </button>
-        </div>
-        <div class="mt-4" id="todos"></div>
-        <div class="flex">
-          <button class="bg-green-500 hover:bg-green-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline" id="save" type="submit" style="width:100%; margin-left: 0;">
-            Save
-          </button>
-        </div>
-      </div>
+<body style="background-color: #eef2ff;">
+    <div class="fixed right-5 top-5 flex">
+        <button class="text-white flex items-center justify-center w-full px-4 py-2 space-x-1 font-medium tracking-wider uppercase bg-green-400 rounded-md focus:outline-none focus:ring mr-3">
+            <span class="pr-1 font-smaller">
+                <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 21 21">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6.072 10.072 2 2 6-4m3.586 4.314.9-.9a2 2 0 0 0 0-2.828l-.9-.9a2 2 0 0 1-.586-1.414V5.072a2 2 0 0 0-2-2H13.8a2 2 0 0 1-1.414-.586l-.9-.9a2 2 0 0 0-2.828 0l-.9.9a2 2 0 0 1-1.414.586H5.072a2 2 0 0 0-2 2v1.272a2 2 0 0 1-.586 1.414l-.9.9a2 2 0 0 0 0 2.828l.9.9a2 2 0 0 1 .586 1.414v1.272a2 2 0 0 0 2 2h1.272a2 2 0 0 1 1.414.586l.9.9a2 2 0 0 0 2.828 0l.9-.9a2 2 0 0 1 1.414-.586h1.272a2 2 0 0 0 2-2V13.8a2 2 0 0 1 .586-1.414Z"></path>
+                </svg>
+            </span>
+            <span id="save" type="submit"> Save </span>
+        </button>
+        <button class="flex items-center justify-center w-full px-4 py-2 space-x-1 font-medium tracking-wider uppercase rounded-md focus:outline-none focus:ring">
+            <span>
+                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+            </span>
+            <span id="logout" type="submit"> Logout </span>
+        </button>
     </div>
-  </body>
+    <div class="w-full p-4 bg-gradient-to-b">
+        <main role="main" class="w-full flex flex-col h-screen content-center justify-center">
+                <div class="m-8 p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700">
+                    <div id="data_container" class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-3 gap-1">
+                    </div>
+                </div>
+        </main>
+    </div>
+    <div class="flex flex-grow items-center justify-center h-full">
+        <div class="fixed bottom-5 p-5 bg-white rounded-lg shadow-lg md:w-80 lg:w-90 m-4">
+            <div class="flex items-center w-full h-8">
+                <button id="create-list" type="submit" class="p-2 rounded bg-purple-400 hover:bg-purple-500">
+                    <svg class="w-5 h-5 text-white fill-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </button>
+                <input id="todo-with-list" name="name" class="flex-grow bg-transparent focus:outline-none text-medium p-2 ml-2" type="text" placeholder="add a new todo">
+            </div>
+        </div>
+    </div>
+</body>
 
-  <script>
-    window.todos = $TODOS
+<style>
+    input[type=checkbox]:checked+label span:first-of-type {
+	background-color: #10B981;
+	border-color: #10B981;
+	color: #fff;
+    }
 
-    var updateTodos = function () {
+    input[type=checkbox]:checked+label span:nth-of-type(2) {
+        text-decoration: line-through;
+        color: #9CA3AF;
+    }
+</style>
+    <script>
+
+        // Create initial todo objects
+        window.initialTodos = $TODOS
+        // [{
+        //     id: 'example',
+        //     name: 'example',
+        //     list: [
+        //         { id: "1", name: "example", completed: false }
+        //     ]
+        // }];
+
+    // create-list button events
+    document.getElementById('create-list').addEventListener('click', () => {
+        const newTodoItem = document.getElementById('todo-with-list').value;
+        if (newTodoItem.trim() !== '') {
+            const newTodoList = createTodoObject('todos' + Math.random().toString(36).substr(2, 9), 'My Todo List', [{ id: "1", name: newTodoItem, completed: false }]);
+            todos.push(newTodoList);
+            renderTodoList(newTodoList, dataContainer);
+            document.getElementById('todo-with-list').value = '';
+        }
+    });
+
+    // Todo factory function
+    function createTodoObject(id, name, list) {
+        return {
+            id: id,
+            name: name,
+            list: list,
+            update: function() {
+                updateUI(this);
+            },
+            toggle: function(todoId) {
+                toggleTodoItem(this, todoId);
+            },
+            create: function(name) {
+                addNewTodoItem(this, name);
+            },
+            delete: function(todoId) {
+                removeTodoItem(this, todoId);
+            },
+            editTitle: function(newTitle) {
+                this.name = newTitle;
+                this.update();
+                return this.name;
+            }
+        };
+    }
+
+    // Initialize todos
+    const todos = initialTodos.map(todo => createTodoObject(todo.id, todo.name, todo.list));
+
+    // Render todos
+    const dataContainer = document.getElementById('data_container');
+    todos.forEach(todo => {
+        renderTodoList(todo, dataContainer);
+    });
+
+    function renderTodoList(todo, parent) {
+        const todoListElement = document.createElement('div');
+        todoListElement.id = todo.id+'list';
+        todoListElement.classList.add('flex', 'flex-col', 'justify-between', 'max-w-full', 'p-8', 'bg-white', 'rounded-lg', 'shadow-lg', 'lg:w-96', 'm-4');
+
+        const todoListBody = document.createElement('div');
+
+        const todoListHeader = document.createElement('div');
+        todoListHeader.classList.add('flex', 'items-center', 'justify-between', 'w-full', 'mb-5');
+        todoListHeader.innerHTML = '<svg class="ml-2 h-8 w-8 text-indigo-500 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 25 25" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>';
+        
+        const todoListTitle = document.createElement('h4');
+        todoListTitle.classList.add('font-semibold', 'ml-3', 'mr-3', 'text-lg');
+        todoListTitle.textContent = todo.name;
+
+        const editTitleIcon = document.createElement('div');
+        editTitleIcon.innerHTML = '<svg class="mr-2 h-7 w-7 text-indigo-500 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 26 26" stroke-width="2" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+        editTitleIcon.style.cursor = 'pointer';
+        editTitleIcon.addEventListener('click', () => {
+            const newName = prompt('Enter new title for the todo list:', todo.name);
+            if (newName !== null && newName !== '') {
+                todoListTitle.textContent = todo.editTitle(newName);
+            }
+        });
+
+        todoListHeader.appendChild(todoListTitle);
+        todoListHeader.appendChild(editTitleIcon);
+
+        const todoListContainer = document.createElement('div');
+        todoListContainer.id = todo.id;
+
+        const todoInputContainer = document.createElement('div');
+        todoInputContainer.classList.add('flex', 'items-center', 'w-full', 'h-8', 'px-2', 'mt-5', 'flex', 'items-center');
+
+        const todoCreateButton = document.createElement('button');
+        todoCreateButton.id = 'create';
+        todoCreateButton.type = 'submit';
+        todoCreateButton.classList.add('p-2', 'rounded', 'bg-blue-100', 'hover:bg-blue-200');
+        todoCreateButton.innerHTML = '<svg class="w-5 h-5 text-gray-600 fill-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>';
+
+        const todoInput = document.createElement('input');
+        todoInput.name = 'name';
+        todoInput.classList.add('flex-grow', 'bg-transparent', 'focus:outline-none', 'text-medium', 'p-2', 'ml-2');
+        todoInput.type = 'text';
+        todoInput.placeholder = 'add a new todo';
+
+        todoInputContainer.appendChild(todoCreateButton);
+        todoInputContainer.appendChild(todoInput);
+
+        todoListBody.appendChild(todoListHeader);
+        todoListBody.appendChild(todoListContainer);
+        todoListElement.appendChild(todoListBody);
+        todoListElement.appendChild(todoInputContainer);
+
+        parent.appendChild(todoListElement);
+
+        // Event listeners
+        todoCreateButton.addEventListener('click', () => {
+            todo.create(todoInput.value);
+            todoInput.value = '';
+        });
+
+        todoInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                todo.create(todoInput.value);
+                todoInput.value = '';
+            }
+        });
+
+        todo.update();
+    }
+
+    function toggleTodoItem(todo, todoId) {
+        const index = todo.list.findIndex(item => item.id === todoId);
+        if (index !== -1) {
+            todo.list[index].completed = !todo.list[index].completed;
+            todo.update();
+        }
+    }
+
+    function addNewTodoItem(todo, name) {
+        const trimmedName = name.trim();
+        if (trimmedName !== '') {
+            todo.list.push({ id: generateUniqueId(), name: trimmedName, completed: false });
+            todo.update();
+        }
+        
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(1, 11);
+        }
+    }
+
+    function removeTodoItem(todo, todoId) {
+        const index = todo.list.findIndex(item => item.id === todoId);
+        if (index !== -1) {
+            todo.list.splice(index, 1);
+            todo.update();
+        }
+        if (todo.list.length === 0) {
+            const todoListElement = document.getElementById(todo.id+'list');
+            todoListElement.remove();
+            //
+            const todoIndex = todos.findIndex(item => item.id === todo.id);
+            if (todoIndex !== -1) {
+                todos.splice(todoIndex, 1);
+            }
+        }
+    }
+
+    function updateUI(todo) {
+        const todoContainer = document.getElementById(todo.id);
+        todoContainer.innerHTML = '';
+
+        todo.list.forEach(todoItem => {
+            const todoDiv = document.createElement('div');
+            todoDiv.classList.add('flex', 'items-center', 'justify-between');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.classList.add('hidden');
+            checkbox.id = 'task_' + todoItem.id;
+            if (todoItem.completed) checkbox.setAttribute('checked', 'checked');
+
+            var todo_field = document.createElement("label");
+            todo_field.setAttribute("class", "flex items-center w-full h-10 px-2 rounded cursor-pointer hover:bg-gray-100");
+            todo_field.setAttribute('for', 'task_' + todoItem.id);
+
+            const label = document.createElement('label');
+            label.classList.add('flex', 'items-center', 'w-full', 'h-10', 'px-2', 'rounded', 'cursor-pointer', 'hover:bg-gray-100');
+            label.addEventListener('click', event => {
+                event.stopPropagation();
+                todo.toggle(todoItem.id);
+            });
+
+            const span1 = document.createElement('span');
+            span1.classList.add('flex', 'items-center', 'justify-center', 'w-5', 'h-5', 'text-transparent', 'border-2', 'border-gray-300', 'rounded-full');
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('w-4', 'h-4', 'fill-current');
+            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            svg.setAttribute('viewBox', '0 0 20 20');
+            svg.setAttribute('fill', 'currentColor');
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('fill-rule', 'evenodd');
+            path.setAttribute('d', 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z');
+            path.setAttribute('clip-rule', 'evenodd');
+
+            svg.appendChild(path);
+            span1.appendChild(svg);
+
+            const span2 = document.createElement('span');
+            span2.classList.add('ml-4', 'text-sm');
+            span2.textContent = todoItem.name;
+
+            todo_field.appendChild(span1);
+            todo_field.appendChild(span2);
+            label.appendChild(todo_field);
+
+            todoDiv.appendChild(checkbox);
+            todoDiv.appendChild(label);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.style = 'font-size: smaller; margin-right: 5px;';
+            deleteButton.innerHTML = '&#10006;';
+            deleteButton.addEventListener('click', event => {
+                event.stopPropagation();
+                todo.delete(todoItem.id);
+            });
+
+            label.appendChild(deleteButton);
+
+            todoContainer.appendChild(todoDiv);
+        });
+    }
+
+    //
+    var logout = function() { window.location.href = `/logout`; };
+    document.querySelector('#logout').addEventListener('click', logout);
+    var sync = function () {
       fetch('/', {
         method: 'PUT',
-        body: JSON.stringify({ data: { todos: window.todos } })
+        body: JSON.stringify({ data: { todos: todos } })
       }).then(async function(response){
         const response_data = await response.json();
         if (response_data.message) alert(response_data.message);
       });
     };
-
-    var completeTodo = function (evt) {
-      var checkbox = evt.target;
-      var todoElement = checkbox.parentNode;
-      var newTodoSet = [].concat(window.todos);
-      var todo = newTodoSet.find(t => t.id == todoElement.dataset.todo);
-      todo.completed = !todo.completed;
-      window.todos = newTodoSet;
-    };
-
-    var deleteTodo = function (evt) {
-      var button = evt.target;
-      var todoElement = button.parentNode;
-      var newTodoSet = window.todos.filter(t => t.id != todoElement.dataset.todo);
-      window.todos = newTodoSet;
-      populateTodos();
-    };
-
-    var populateTodos = function () {
-      var todoContainer = document.querySelector('#todos');
-      todoContainer.innerHTML = null;
-
-      window.todos.forEach(todo => {
-        var el = document.createElement('div');
-        el.className = 'border-t py-4';
-        el.dataset.todo = todo.id;
-
-        var name = document.createElement('span');
-        name.className = todo.completed ? 'line-through' : '';
-        name.textContent = todo.name;
-
-        var checkbox = document.createElement('input');
-        checkbox.className = 'mx-4';
-        checkbox.type = 'checkbox';
-        checkbox.checked = todo.completed ? 1 : 0;
-        checkbox.addEventListener('click', completeTodo);
-
-        var deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.className = 'bg-red-500 hover:bg-red-800 text-white font-bold ml-2 py-2 px-4 rounded focus:outline-none focus:shadow-outline';
-        deleteButton.addEventListener('click', deleteTodo);
-
-        el.appendChild(checkbox);
-        el.appendChild(name);
-        el.appendChild(deleteButton);
-        todoContainer.appendChild(el);
-      });
-    };
-
-    populateTodos();
-
-    var createTodo = function () {
-      var input = document.querySelector('input[name=name]');
-      if (input.value.length) {
-        window.todos = [].concat(todos, {
-          id: `${window.todos.length + 1}`,
-          name: input.value,
-          completed: false
-        });
-        input.value = '';
-        populateTodos();
-      }
-    };
-
-    var logout = function() { window.location.href = `/logout`; };
-
-    document.querySelector('#save').addEventListener('click', updateTodos);
-    document.querySelector('#logout').addEventListener('click', logout);
-    document.querySelector('#create').addEventListener('click', createTodo);
-  </script>
+    document.querySelector('#save').addEventListener('click', sync);
+</script>
 </html> 
